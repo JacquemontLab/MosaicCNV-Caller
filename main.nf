@@ -12,7 +12,7 @@ params {
 
 
 process filterVCF {
-
+    tag "Filtering variants from ${vcf.simpleName}"
     input:
     path vcf
     path reference
@@ -40,7 +40,7 @@ process filterVCF {
 }
 
 process phase {
-
+    tag "Phasing ${vcf.simpleName}"
     input:
     path vcf
     path index
@@ -127,8 +127,6 @@ process mocha {
 }
 
 process filterOutput {
-    conda 'conda-forge::polars'
-
     input:
     path calls
 

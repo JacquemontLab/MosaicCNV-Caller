@@ -4,6 +4,7 @@ work
 scratch
 test
 notes.md
-resources
+resources/GRCh38/beagle
+resources/GRCh38/mocha/GCA_000001405.15_GRCh38_no_alt_analysis_set.*
 **/__pychache__
 results
