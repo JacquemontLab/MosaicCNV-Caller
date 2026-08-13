@@ -67,6 +67,35 @@ def flag_mca_calls(
     ])
     return out
 
+def format_out(df: pl.DataFrame) -> pl.DataFrame:
+    new_df = df.rename({"sample_id" : "SampleID",
+                        "chrom": "Chr", 
+                        "beg_GRCh38": "Start",
+                        "end_GRCh38": "End",
+                        "length": "Length",
+                        "type" : "Type",
+                        "cf": "Cell_Fraction",
+                        "rel_cov" : "Relative_Copy_Number",
+                        "bdev": "BAF_Deviation",
+                        "lod_baf_phase": "LOD_BAF_Phase_Score" })
+    
+    new_df = new_df.select(["SampleID",
+                            "Chr",
+                            "Start",
+                            "End",
+                            "Length",
+                            "Type", 
+                            "Cell_Fraction", 
+                            "Relative_Copy_Number", 
+                            "BAF_Deviation", 
+                            "LOD_BAF_Phase_Score"])
+    
+    new_df = new_df.with_columns(pl.when(pl.col("Type") == "Loss")
+                                   .then(pl.lit('DEL'))
+                                   .when(pl.col("Type") == "Gain")
+                                   .then(pl.lit("DUP")).alias("Type"))
+
+    return(new_df)
 
 if __name__ == "__main__":
     import sys
@@ -74,4 +103,5 @@ if __name__ == "__main__":
     calls = sys.argv[1]
     df_calls = read_mca_calls(calls)
     flagged = flag_mca_calls(df_calls)
-    flagged.write_csv("MCA_flagged.tsv", separator="\t")
+    out = format_out(flagged)
+    out.write_csv("mosaicDB.tsv", separator="\t")

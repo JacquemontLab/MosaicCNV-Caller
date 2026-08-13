@@ -5,10 +5,9 @@ params {
     genome_version      : String  = "GRCh38"
     vcf_samplefile      : Path  = ""
     impute              : Boolean = false
-    mocha_resources     : String = "/home/clarkb/images/mocha/resources"
-    reference_fasta     : Path = "/home/clarkb/images/mocha/resources/GCA_000001405.15_GRCh38_no_alt_analysis_set.fna"
-    reference_fasta_fai : Path = "/home/clarkb/images/mocha/resources/GCA_000001405.15_GRCh38_no_alt_analysis_set.fna.fai"
+    mocha_resources     : String = "${projectDir}/resources/GRCh38/mocha"
     beagle_resources    : Path = "${projectDir}/resources/GRCh38/beagle/"
+    dataset_name        : String = "TEST"
 }
 
 
@@ -74,21 +73,7 @@ process phase {
     """
 
 }
-process sort {
-    input: 
-    path vcf
-    path index
 
-    output:
-    path "${vcf.baseName}_sorted.bcf"
-
-    script:
-    """
-    bcftools sort ${vcf} -b -o ${vcf.baseName}_sorted.bcf
-    """
-
-
-}
 
 process mergeChromosomes {
     input:
@@ -117,7 +102,7 @@ process mocha {
     val genome_version
 
     output:
-    path "mosaic_out.bcf", emit:"bcf"
+    path "mosaic_out.bcf",   emit:"bcf"
     path "mosaic_stats.tsv", emit: "stats"
     path "mosaic_calls.tsv", emit: "calls"
 
@@ -148,7 +133,7 @@ process filterOutput {
     path calls
 
     output:
-    path "MCA_flagged.tsv"
+    path "mosaicDB.tsv"
 
     script:
     """
@@ -159,6 +144,8 @@ process filterOutput {
 workflow {
 
 main:
+
+    //Build channels from chromosome-level data for BEAGLE phasing
     bref3_ch = channel.fromPath("${params.beagle_resources}/bref3/*.bref3" )
         .map { file ->
                 def chrom = (file.name =~ /chr(\w+)/)[0][1]  
@@ -171,32 +158,38 @@ main:
                 tuple(chrom, file)
         }
 
-
+    //Read samplesheet into chromosome-level channel
     vcf_ch = channel.fromList(samplesheetToList(params.vcf_samplefile, "${projectDir}/assets/sampleFile_schema.json"))
 
-    filterVCF(vcf_ch.map{it -> it[0]}, 
-              params.reference_fasta, 
-              params.reference_fasta_fai,
-              file(params.mocha_resources).resolve("segdups.bed.gz"),
-              vcf_ch.map{it -> it[1]})
+    //Filter the VCF as recommended by MoChA
+    filterVCF(vcf_ch.map{it -> it[0]},                                                                          //chromosome num
+              file(params.mocha_resources).resolve("GCA_000001405.15_GRCh38_no_alt_analysis_set.fna"),          //fasta reference for GC mapping
+              file(params.mocha_resources).resolve("GCA_000001405.15_GRCh38_no_alt_analysis_set.fna.fai"),      //index
+              file(params.mocha_resources).resolve("segdups.bed.gz"),                                           //segdup regions
+              vcf_ch.map{it -> it[1]})                                                                          // the vcf file
 
+    // Join BEAGLE chromosome specific resource into one tuple
     filtered_vcf_ch = filterVCF.out.join(bref3_ch).join(map_ch)
     
    
-
+    // Perform BEAGLE phasing
     phase_ch = phase(filtered_vcf_ch.map{it -> it[1]}, //vcf file
                      filtered_vcf_ch.map{it -> it[2]}, //index
                      filtered_vcf_ch.map{it -> it[3]}, //bref3 reference
                      filtered_vcf_ch.map{it -> it[4]}, //plink map file
                     params.impute)
 
+    //Pull all phased chromosome files into one list and merge them into one bcf
     mergeChromosomes(phase_ch.collect())
 
+    //Run MoChA
     mocha(mergeChromosomes.out.bcf, 
           mergeChromosomes.out.index,  
           params.mocha_resources, 
           params.genome_version)
 
+
+    //Make filtered output for high confidence somatic mutations with more readable column names
     filterOutput(mocha.out.calls)
 
 
@@ -210,13 +203,13 @@ publish:
 
 output {
     calls {
-
+        path "${params.dataset_name}"
     }
     stats {
-
+        path "${params.dataset_name}"
     }
     raw_calls{
-
+        path "${params.dataset_name}"
     }
 
 }
