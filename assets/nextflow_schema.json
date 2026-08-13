@@ -1,0 +1,27 @@
+{
+    "$schema": "https://json-schema.org/draft/2020-12/schema",
+    "$id": "https://raw.githubusercontent.com///nextflow_schema.json",
+    "title": " pipeline parameters",
+    "description": "",
+    "type": "object",
+    "properties": {
+        "genome_version": {
+            "type": "string",
+            "default": "GRCh38"
+        },
+        "vcf_samplefile": {
+            "type": "string"
+        },
+        "impute": {
+            "type": "boolean"
+        },
+        "mocha_resources": {
+            "type": "string",
+            "default": "/home/clarkb/images/mocha/resources"
+        },
+        "beagle_resources": {
+            "type": "string",
+            "default": "/home/clarkb/repos/mocha-nf/resources/beagle/GRCh38"
+        }
+    }
+}

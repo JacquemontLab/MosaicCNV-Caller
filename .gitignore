@@ -1,0 +1,8 @@
+work
+.nextflow
+.nextflow.log*
+scratch
+test
+notes.md
+resources
+**/__pychache__
