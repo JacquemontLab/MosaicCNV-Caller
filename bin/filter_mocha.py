@@ -61,9 +61,9 @@ def flag_mca_calls(
 
 
     out = out.with_columns([
-        whole_chrom.alias("whole_chrom_event"),
-        p_arm_event.alias("p_arm_event"),
-        q_arm_event.alias("q_arm_event"),
+        whole_chrom.alias("Whole_Chromosome"),
+        p_arm_event.alias("P_Arm_Event"),
+        q_arm_event.alias("Q_Arm_Event"),
     ])
     return out
 
@@ -88,7 +88,10 @@ def format_out(df: pl.DataFrame) -> pl.DataFrame:
                             "Cell_Fraction", 
                             "Relative_Copy_Number", 
                             "BAF_Deviation", 
-                            "LOD_BAF_Phase_Score"])
+                            "LOD_BAF_Phase_Score",
+                            "P_Arm_Event",
+                            "Q_Arm_Event",
+                            "Whole_Chromosome"])
     
     new_df = new_df.with_columns(pl.when(pl.col("Type") == "Loss")
                                    .then(pl.lit('DEL'))

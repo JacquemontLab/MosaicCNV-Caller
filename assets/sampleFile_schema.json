@@ -5,7 +5,7 @@
     "type": "object",
     "properties": {
       "Path": { "type": "string" },
-      "Chr": { "type": "integer" }
+      "Chr":  { "type": "string" }
     }
   }
 }
