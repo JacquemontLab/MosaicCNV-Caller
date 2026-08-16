@@ -147,6 +147,7 @@ output {
     plinks{
         mode 'copy'
         path "beagle"
+        
     }
     bref3 {
         mode 'copy'
@@ -155,6 +156,7 @@ output {
     fasta {
         mode 'copy'
         path "mocha"
+  
     }
     indices {
         mode 'copy'

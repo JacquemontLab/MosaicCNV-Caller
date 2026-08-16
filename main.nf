@@ -2,12 +2,12 @@
 include { samplesheetToList } from 'plugin/nf-schema'
 
 params {
-    genome_version      : String  = "GRCh38"
-    vcf_samplefile      : Path  = ""
-    impute              : Boolean = false
-    mocha_resources     : String = "${projectDir}/resources/GRCh38/mocha"
-    beagle_resources    : Path = "${projectDir}/resources/GRCh38/beagle/"
-    dataset_name        : String = "TEST"
+    genome_version      : String
+    vcf_samplefile      : Path
+    impute              : Boolean
+    mocha_resources     : Path
+    beagle_resources    : Path
+    dataset_name        : String
 }
 
 
@@ -81,7 +81,7 @@ process mergeChromosomes {
 
     output:
     path "merged_phased.bcf", emit: "bcf"
-    path  "merged_phased.bcf.csi", emit: "index"
+    path "merged_phased.bcf.csi", emit: "index"
 
     script:
     """
@@ -98,7 +98,7 @@ process mocha {
     input:
     path vcf
     path index
-    path mocha_resources
+    path cnps
     val genome_version
 
     output:
@@ -118,7 +118,7 @@ process mocha {
             --calls mosaic_calls.tsv \
             --stats mosaic_stats.tsv \
             --write-index \
-            --cnp ${mocha_resources}/cnps.bed \
+            --cnp ${cnps} \
             --mhc "chr6:27518932-33480487" \
             --kir "chr19:54071493-54992731" \
             --thr ${task.cpus} \
@@ -183,7 +183,7 @@ main:
     //Run MoChA
     mocha(mergeChromosomes.out.bcf, 
           mergeChromosomes.out.index,  
-          params.mocha_resources, 
+          file(params.mocha_resources).resolve("cnps.bed"), 
           params.genome_version)
 
 
