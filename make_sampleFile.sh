@@ -12,22 +12,23 @@ if [[ ! -d "$VCF_DIR" ]]; then
     exit 1
 fi
 
-echo -e "Chr,Path" > "$OUT"
+echo -e "Path,Chr" > "$OUT"
 
 shopt -s nullglob
 found=0
 for f in "$VCF_DIR"/*.vcf "$VCF_DIR"/*.vcf.gz; do
     fname=$(basename "$f")
 
-    # Extract chromosome token after chr/chromosome: digits (strip leading zeros) or X/Y
-    if [[ "$fname" =~ chr(omosome)?[_.]?0*([0-9]+|[XY]) ]]; then
-        chrom="${BASH_REMATCH[2]}"
+    # Extract chromosome token after chr/chromosome (case-insensitive): digits or X/Y
+    if [[ "$fname" =~ [Cc][Hh][Rr](omosome)?[_.]?0*([0-9]+|[XYxy]) ]]; then
+        chrom="chr${BASH_REMATCH[2]^^}"   # force lowercase 'chr' + uppercase X/Y (numbers unaffected)
+        # if you'd rather keep numbers as numbers with no case issue, this is already fine
     else
         echo "Warning: could not parse a chromosome from $fname, skipping" >&2
         continue
     fi
 
-    echo -e "${chrom},$(realpath "$f")" >> "$OUT"
+    echo -e "$(realpath "$f"),${chrom}" >> "$OUT"
     found=$((found+1))
 done
 
@@ -36,10 +37,10 @@ if [[ $found -eq 0 ]]; then
     exit 1
 fi
 
-# sort: numeric chromosomes first (1-22), then X, Y
+# sort by chromosome (2nd column now), natural/version order: chr1..chr22, chrX, chrY
 {
     head -n1 "$OUT"
-    tail -n +2 "$OUT" | sort -t$'\t' -k1,1V
+    tail -n +2 "$OUT" | sort -t$'\t' -k2,2V
 } > "${OUT}.sorted" && mv "${OUT}.sorted" "$OUT"
 
 echo "Wrote $found entries to $OUT"
