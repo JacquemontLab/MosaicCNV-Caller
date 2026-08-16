@@ -146,13 +146,13 @@ main:
     //Build channels from chromosome-level data for BEAGLE phasing
     bref3_ch = channel.fromPath("${params.beagle_resources}/bref3/*.bref3" )
         .map { file ->
-                def chrom = (file.name =~ /chr(\w+)/)[0][1]  
+                def chrom = (file.name =~ /(chr\w+)/)[0][1]  
                 tuple(chrom, file)
         }
 
     map_ch = channel.fromPath("${params.beagle_resources}/chr_in_chrom_field/*.map" )
         .map { file ->
-                def chrom = (file.name =~ /chrchr(\w+)/)[0][1]  
+                def chrom = (file.name =~ /chr(chr\w+)/)[0][1]  
                 tuple(chrom, file)
         }
 
