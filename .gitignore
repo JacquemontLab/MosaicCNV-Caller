@@ -8,3 +8,5 @@ resources/GRCh38/beagle
 resources/GRCh38/mocha/GCA_000001405.15_GRCh38_no_alt_analysis_set.*
 bin/__pycache__
 results
+*html
+*log

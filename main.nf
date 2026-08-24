@@ -1,4 +1,3 @@
-
 include { samplesheetToList } from 'plugin/nf-schema'
 
 params {
@@ -10,6 +9,29 @@ params {
     dataset_name        : String
 }
 
+//Takes VCF files, bigzips if uncompressed and generates a 
+//new name based off of dataset_name 
+process normalizeNames {
+    input:
+        val chr
+        path vcf
+        val dataset_name
+
+
+    output:
+    tuple val(chr), path("${dataset_name}_chr${chr}.vcf.gz")
+
+    
+    script:
+    """
+    if ! bgzip -t ${vcf} &> /dev/null; then
+        bgzip ${vcf} > "${dataset_name}_${chr}.vcf.gz"
+    else
+        ln -s ${vcf} "${dataset_name}_${chr}.vcf.gz"
+    fi
+    
+    """
+}
 
 process filterVCF {
     tag "Filtering variants from ${vcf.simpleName}"
@@ -159,12 +181,16 @@ main:
     //Read samplesheet into chromosome-level channel
     vcf_ch = channel.fromList(samplesheetToList(params.vcf_samplefile, "${projectDir}/assets/sampleFile_schema.json"))
 
+    normalizeNames(vcf_ch.map{it -> it[1]}, 
+                   vcf_ch.map{it -> it[0]},
+                   params.dataset_name)
+
     //Filter the VCF as recommended by MoChA
-    filterVCF(vcf_ch.map{it -> it[0]},                                                                          //chromosome num
+    filterVCF(normalizeNames.out.map{it -> it[1]},                                                              //chromosome num
               file(params.mocha_resources).resolve("GCA_000001405.15_GRCh38_no_alt_analysis_set.fna"),          //fasta reference for GC mapping
               file(params.mocha_resources).resolve("GCA_000001405.15_GRCh38_no_alt_analysis_set.fna.fai"),      //index
               file(params.mocha_resources).resolve("segdups.bed.gz"),                                           //segdup regions
-              vcf_ch.map{it -> it[1]})                                                                          // the vcf file
+              normalizeNames.out.map{it -> it[0]})                                                              // the vcf file
 
     // Join BEAGLE chromosome specific resource into one tuple
     filtered_vcf_ch = filterVCF.out.join(bref3_ch).join(map_ch)
@@ -206,7 +232,7 @@ output {
     stats {
         path "${params.dataset_name}"
     }
-    raw_calls{
+    raw_calls {
         path "${params.dataset_name}"
     }
 
