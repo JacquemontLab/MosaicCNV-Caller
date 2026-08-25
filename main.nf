@@ -19,7 +19,7 @@ process normalizeNames {
 
 
     output:
-    tuple val(chr), path("${dataset_name}_chr${chr}.vcf.gz")
+    tuple val(chr), path("${dataset_name}_${chr}.vcf.gz")
 
     
     script:
