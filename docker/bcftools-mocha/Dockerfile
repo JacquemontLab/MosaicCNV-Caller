@@ -69,9 +69,7 @@ RUN set -eux; \
     cp htslib-${BCFTOOLS_VERSION}/tabix /opt/bcftools/bin/; \
     cp htslib-${BCFTOOLS_VERSION}/bgzip /opt/bcftools/bin/; \
     cp htslib-${BCFTOOLS_VERSION}/htsfile /opt/bcftools/bin/; \
-    cp plugins/mocha.so /opt/bcftools/plugins/; \
-    cp plugins/mochatools.so /opt/bcftools/plugins/; \
-    cp plugins/extendFMT.so /opt/bcftools/plugins/; \
+    cp plugins/*.so /opt/bcftools/plugins/; \
     \
     printf 'BCFTOOLS_VERSION=%s\nMOCHA_COMMIT=%s\n' \
         "${BCFTOOLS_VERSION}" "${MOCHA_COMMIT}" \
