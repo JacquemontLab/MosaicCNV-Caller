@@ -19,7 +19,7 @@ process normalizeNames {
 
 
     output:
-    tuple val(chr), path("${dataset_name}_chr${chr}.vcf.gz")
+    tuple val(chr), path("${dataset_name}_${chr}.vcf.gz")
 
     
     script:
@@ -54,16 +54,27 @@ process filterVCF {
     bcftools reheader -h /dev/stdin vcf_withGC.bcf | 
     bcftools view -f 'PASS,.' |
     bcftools filter --no-version -Ou -e "FMT/DP<10 | FMT/GQ<20" --set-GT . | 
-    bcftools view -T ^${segdups} -Ou |
+    bcftools view -T ^${segdups} -Ou  |
     bcftools annotate --no-version -Ou -x ID,QUAL,^INFO/GC,^FMT/GT,^FMT/AD | 
     bcftools norm --no-version -Ou -m -any --keep-sum AD | 
-    bcftools norm --no-version -o "${vcf.simpleName}.filtered.vcf.gz" -f "${reference}" --write-index -Oz -
+    bcftools norm --no-version -o "${vcf.simpleName}.filtered.vcf.gz" -f "${reference}" --write-index  -Oz -
+
+
+    #if [[ "${chr}" == "chrX" ]]; then
+    #    bcftools view "${vcf.simpleName}.filtered.vcf.gz" \
+    #        -r chrX:2781480-155701382,chrX:156030896- \
+    #        -Oz -o ".tmp.vcf.gz" --write-index
+    #    mv ".tmp.vcf.gz" "${vcf.simpleName}.filtered.vcf.gz"
+    #    mv ".tmp.vcf.gz.csi" "${vcf.simpleName}.filtered.vcf.gz.csi"
+    #fi
+
     """
 }
 
 process phase {
     tag "Phasing ${vcf.simpleName}"
     input:
+    val chr
     path vcf
     path index
     path reference_bref3
@@ -77,13 +88,24 @@ process phase {
     """
     export JAVA_OPTS="-Xmx${task.memory.giga}g"
 
-
-    java \$JAVA_OPTS -jar "${projectDir}/bin/beagle.27Feb25.75f.jar" gt=${vcf} \
-        ref=${reference_bref3} \
-        map=${map_file} \
-        impute=${impute} \
-        nthreads=${task.cpus} \
-        out="${vcf.simpleName}_BEAGLE"
+    if [[ "${chr}" == "chrX" ]]; then
+        java \$JAVA_OPTS -jar "${projectDir}/bin/beagle.27Feb25.75f.jar" gt=${vcf} \
+            ref=${reference_bref3} \
+            map=${map_file} \
+            impute=${impute} \
+            window=300 \
+            nthreads=${task.cpus} \
+            out="${vcf.simpleName}_BEAGLE"
+    
+    else
+    
+        java \$JAVA_OPTS -jar "${projectDir}/bin/beagle.27Feb25.75f.jar" gt=${vcf} \
+            ref=${reference_bref3} \
+            map=${map_file} \
+            impute=${impute} \
+            nthreads=${task.cpus} \
+            out="${vcf.simpleName}_BEAGLE"
+    fi
 
     tabix -p vcf "${vcf.simpleName}_BEAGLE.vcf.gz"
 
@@ -197,7 +219,8 @@ main:
     
    
     // Perform BEAGLE phasing
-    phase_ch = phase(filtered_vcf_ch.map{it -> it[1]}, //vcf file
+    phase_ch = phase(filtered_vcf_ch.map{it -> it[0]}, //chr 
+                     filtered_vcf_ch.map{it -> it[1]}, //vcf file
                      filtered_vcf_ch.map{it -> it[2]}, //index
                      filtered_vcf_ch.map{it -> it[3]}, //bref3 reference
                      filtered_vcf_ch.map{it -> it[4]}, //plink map file
